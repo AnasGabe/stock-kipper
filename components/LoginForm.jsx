@@ -129,9 +129,9 @@ export default function LoginForm() {
             </button>
           </form>
 
-          <p className="mt-5 text-center text-xs text-slate-400">
+          {/* <p className="mt-5 text-center text-xs text-slate-400">
             Akun admin pertama dibuat lewat <code className="rounded bg-slate-100 px-1 py-0.5 dark:bg-slate-800">npm run seed</code>
-          </p>
+          </p> */}
         </div>
       </div>
     </div>

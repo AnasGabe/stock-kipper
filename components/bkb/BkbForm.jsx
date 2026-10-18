@@ -1,6 +1,3 @@
-// FILE: components/bkb/BkbForm.jsx
-// Form Input BKB — Admin dan Staff. Enter antar kolom, Ctrl+Enter simpan.
-
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -275,8 +272,18 @@ export default function BkbForm({ user, onSaved }) {
 
           <Field label="Nomor Urut" error={errors.nomorUrut} hint={seqLoading ? 'Mengambil...' : 'Auto, bisa diubah'}>
             <div className="relative">
-              <input type="number" min="1" value={header.nomorUrut}
-                onChange={(e) => setH('nomorUrut', parseInt(e.target.value,10)||1)}
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={header.nomorUrut}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/[^0-9]/g, '');
+                  setH('nomorUrut', v === '' ? '' : parseInt(v, 10) || 1);
+                }}
+                onBlur={(e) => {
+                  if (!e.target.value || parseInt(e.target.value) < 1) setH('nomorUrut', 1);
+                }}
                 className={inputClass(errors.nomorUrut)} />
               {seqLoading && <span className="absolute right-2.5 top-2.5"><Spinner className="h-4 w-4" /></span>}
             </div>

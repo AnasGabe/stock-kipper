@@ -1,3 +1,4 @@
+// FILE: components/ui/CameraScanner.jsx
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -23,14 +24,26 @@ export default function CameraScanner({ open, onDetected, onClose }) {
 
     async function start() {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-        });
-        if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return; }
+        // PERBAIKAN: Menggunakan constraint video yang lebih simpel agar kompatibel dengan semua HP
+        const constraints = {
+          video: { facingMode: 'environment' }
+        };
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        
+        if (cancelled) { 
+          stream.getTracks().forEach((t) => t.stop()); 
+          return; 
+        }
+        
         streamRef.current = stream;
         trackRef.current  = stream.getVideoTracks()[0];
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+        
         setMode('live');
         setMsg('Arahkan ke barcode...');
 
@@ -39,7 +52,7 @@ export default function CameraScanner({ open, onDetected, onClose }) {
             formats: ['code_128','qr_code','ean_13','ean_8','code_39','upc_a','upc_e'],
           });
           const tick = () => {
-            if (cancelled) return;
+            if (cancelled || !videoRef.current) return;
             det.detect(videoRef.current).then((codes) => {
               if (codes?.length) { handleResult(codes[0].rawValue); return; }
               rafRef.current = requestAnimationFrame(tick);
@@ -55,8 +68,8 @@ export default function CameraScanner({ open, onDetected, onClose }) {
               rafRef.current = requestAnimationFrame(tick); return;
             }
             const ctx = canvas.getContext('2d');
-            canvas.width  = videoRef.current.videoWidth;
-            canvas.height = videoRef.current.videoHeight;
+            canvas.width  = videoRef.current.videoWidth || 640;
+            canvas.height = videoRef.current.videoHeight || 480;
             ctx.drawImage(videoRef.current, 0, 0);
             const img  = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const code = jsQR(img.data, img.width, img.height);
@@ -67,24 +80,30 @@ export default function CameraScanner({ open, onDetected, onClose }) {
         }
       } catch (err) {
         if (cancelled) return;
+        console.error('Camera error:', err);
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
           setMode('denied');
-        } else if (err.name === 'NotFoundError') {
-          setMode('error'); setMsg('Kamera tidak ditemukan.');
+          setMsg('Akses kamera ditolak oleh browser atau sistem HP.');
+        } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+          setMode('error'); 
+          setMsg('Kamera belakang tidak ditemukan pada perangkat ini.');
         } else {
-          setMode('error'); setMsg(`Kamera error: ${err.message}`);
+          setMode('error'); 
+          setMsg(`Gagal membuka kamera: ${err.message}`);
         }
       }
     }
 
     start();
     return () => { cancelled = true; stop(); };
-  }, [open]); // eslint-disable-line
+  }, [open]);
 
   function stop() {
     cancelAnimationFrame(rafRef.current);
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
   }
 
   function handleResult(value) {
@@ -103,7 +122,6 @@ export default function CameraScanner({ open, onDetected, onClose }) {
     } catch { /* torch tidak didukung */ }
   }
 
-  // Fallback: ambil foto via input file → decode dengan jsQR
   async function handleFotoCapture(e) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -122,8 +140,8 @@ export default function CameraScanner({ open, onDetected, onClose }) {
       if (code) {
         onDetected(code.data.trim());
       } else {
-        setMsg('Barcode tidak terbaca. Coba foto lebih dekat dan pastikan cahaya cukup.');
-        setMode('denied'); // kembali ke layar pilihan
+        setMsg('Barcode tidak terbaca. Coba foto lebih dekat.');
+        setMode('denied');
       }
     } catch (err) {
       setMsg(`Gagal memproses foto: ${err.message}`);
@@ -137,10 +155,8 @@ export default function CameraScanner({ open, onDetected, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black">
-      {/* Input foto tersembunyi (fallback) */}
       <input ref={fileRef} type="file" accept="image/*" capture="environment"
         className="hidden" onChange={handleFotoCapture} />
-      {/* Canvas tersembunyi untuk jsQR */}
       <canvas ref={canvasRef} className="hidden" />
 
       {/* Header */}
@@ -166,11 +182,9 @@ export default function CameraScanner({ open, onDetected, onClose }) {
 
       {/* Konten */}
       <div className="relative flex-1 overflow-hidden">
-        {/* Video live */}
         <video ref={videoRef} className={`h-full w-full object-cover ${mode === 'live' ? '' : 'hidden'}`}
           muted playsInline />
 
-        {/* Garis bidik — hanya saat live */}
         {mode === 'live' && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <div className="relative h-52 w-72">
@@ -183,7 +197,6 @@ export default function CameraScanner({ open, onDetected, onClose }) {
           </div>
         )}
 
-        {/* Layar denied / error / processing / loading */}
         {mode !== 'live' && (
           <div className="flex h-full flex-col items-center justify-center gap-5 px-6 text-center">
             {mode === 'loading' || mode === 'processing' ? (
@@ -193,33 +206,27 @@ export default function CameraScanner({ open, onDetected, onClose }) {
               </>
             ) : (
               <>
-                {mode === 'denied' && (
-                  <div className="rounded-2xl bg-white/10 px-4 py-4 text-left text-sm text-slate-200 space-y-1.5 w-full max-w-xs">
-                    <p className="font-semibold text-rose-400 text-center mb-2">
-                      {msg || 'Kamera tidak bisa diakses'}
-                    </p>
-                    <p className="text-xs font-medium text-white">Cara izinkan kamera:</p>
-                    <p className="text-xs">1. Buka <strong>Pengaturan Android</strong></p>
-                    <p className="text-xs">2. Aplikasi → <strong>Chrome</strong> → Izin</p>
-                    <p className="text-xs">3. <strong>Kamera</strong> → Izinkan</p>
-                    <p className="text-xs">4. Kembali ke aplikasi → coba lagi</p>
-                  </div>
-                )}
-                {mode === 'error' && (
-                  <p className="text-sm text-slate-300">{msg}</p>
-                )}
+                <div className="rounded-2xl bg-white/10 px-4 py-4 text-left text-sm text-slate-200 space-y-1.5 w-full max-w-xs">
+                  <p className="font-semibold text-rose-400 text-center mb-2">
+                    {msg || 'Kamera tidak bisa diakses'}
+                  </p>
+                  <p className="text-xs font-medium text-white">Langkah penyelesaian:</p>
+                  <p className="text-xs">1. Tekan tombol <strong>Reset Izin</strong> di pengaturan browser[cite: 3].</p>
+                  <p className="text-xs">2. Buka <strong>Pengaturan HP → Aplikasi → Chrome → Izin</strong>, pastikan Kamera diizinkan.</p>
+                  <p className="text-xs">3. Atau gunakan tombol <strong>Foto Barcode</strong> di bawah ini.</p>
+                </div>
 
-                {/* Tombol alternatif: foto barcode */}
                 <div className="space-y-3 w-full max-w-xs">
                   <button
+                    type="button"
                     onClick={() => fileRef.current?.click()}
                     className="w-full rounded-2xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-700 active:scale-95 transition">
-                    📷 Foto Barcode (tanpa izin kamera)
+                    📷 Foto Barcode (Gunakan Kamera Bawaan HP)
                   </button>
-                  <p className="text-xs text-slate-500 text-center">
-                    Akan membuka kamera bawaan HP. Foto barcode, lalu sistem decode otomatis.
+                  <p className="text-xs text-slate-400 text-center">
+                    Bila izin kamera web terblokir, opsi ini akan membuka kamera bawaan HP untuk mengambil foto barcode[cite: 5].
                   </p>
-                  <button onClick={handleClose}
+                  <button type="button" onClick={handleClose}
                     className="w-full rounded-2xl bg-white/10 px-4 py-2 text-sm text-slate-300 hover:bg-white/20 transition">
                     Tutup
                   </button>
@@ -230,7 +237,6 @@ export default function CameraScanner({ open, onDetected, onClose }) {
         )}
       </div>
 
-      {/* Status bar bawah — hanya saat live */}
       {mode === 'live' && (
         <div className="px-4 py-3 text-center">
           <p className="text-sm text-slate-300">{msg}</p>

@@ -1,8 +1,3 @@
-// FILE: components/users/UserFormModal.jsx
-// Modal tambah/edit user (khusus admin).
-// - Tambah: nama, email, role, password awal
-// - Edit  : nama, role, status aktif (bukan untuk akun sendiri)
-
 'use client';
 
 import { useEffect, useState } from 'react';

@@ -1,7 +1,3 @@
-// FILE: components/AppShell.jsx
-// Kerangka halaman setelah login: sidebar (desktop) + topbar (mobile) + konten.
-// Menampilkan menu sesuai role user dan tombol logout.
-
 'use client';
 
 import Link from 'next/link';

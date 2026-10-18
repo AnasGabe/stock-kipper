@@ -1,6 +1,3 @@
-// FILE: components/ui/Field.jsx
-// Pembungkus label + pesan error + gaya input, dipakai bersama oleh form master & form BKB.
-
 export function Field({ label, hint, error, children, className = '' }) {
   return (
     <div className={className}>

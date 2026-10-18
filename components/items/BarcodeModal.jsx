@@ -1,8 +1,3 @@
-// FILE: components/items/BarcodeModal.jsx
-// Modal generate + cetak barcode untuk satu barang.
-// Nilai barcode: item.barcode (jika diisi) atau fallback ke item.itemCode.
-// Format CODE128 — kompatibel dengan hampir semua scanner USB.
-
 'use client';
 
 import { useEffect, useRef, useState } from 'react';

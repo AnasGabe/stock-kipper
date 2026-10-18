@@ -1,6 +1,3 @@
-// FILE: components/ui/Pagination.jsx
-// Navigasi halaman sederhana untuk tabel.
-
 'use client';
 
 import { cx } from '@/lib/utils';

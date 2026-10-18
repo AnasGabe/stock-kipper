@@ -1,6 +1,3 @@
-// FILE: components/ui/Badge.jsx
-// Label status kecil dengan warna sesuai kondisi.
-
 import { cx } from '@/lib/utils';
 
 const TONES = {

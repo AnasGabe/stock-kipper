@@ -1,6 +1,3 @@
-// FILE: components/ui/Modal.jsx
-// Dialog/Modal generik: klik di luar atau tombol ESC untuk menutup.
-
 'use client';
 
 import { useEffect } from 'react';

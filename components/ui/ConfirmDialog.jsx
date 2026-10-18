@@ -1,6 +1,3 @@
-// FILE: components/ui/ConfirmDialog.jsx
-// Dialog konfirmasi (terutama untuk aksi hapus).
-
 'use client';
 
 import Modal from './Modal';

@@ -1,7 +1,3 @@
-// FILE: components/items/MasterPanel.jsx
-// Master Barang + Saldo KS. Admin: tambah/ubah/hapus. Staff: hanya melihat (read-only).
-// Saldo ikut Realtime — berubah otomatis begitu BKB disimpan Admin.
-
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';

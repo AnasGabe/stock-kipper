@@ -1,7 +1,3 @@
-// FILE: components/activities/ActivitiesPage.jsx
-// Riwayat transaksi (transactions_log): Waktu, Jenis, No Dokumen, Keterangan, Mesin,
-// Barang, Perubahan Saldo (sebelum → sesudah), dan Aktor. Update otomatis via Realtime.
-
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';

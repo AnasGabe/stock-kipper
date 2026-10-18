@@ -1,6 +1,3 @@
-// FILE: components/items/StockDetailModal.jsx
-// Detail barang + riwayat mutasi saldo (dari transactions_log).
-
 'use client';
 
 import { useEffect, useState } from 'react';

@@ -1,6 +1,3 @@
-// FILE: components/ui/EmptyState.jsx
-// Tampilan saat tidak ada data (mis. hasil pencarian kosong).
-
 export default function EmptyState({ title = 'Belum ada data', description, action }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 px-6 py-14 text-center dark:border-slate-700">

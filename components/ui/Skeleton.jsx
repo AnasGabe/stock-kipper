@@ -1,6 +1,3 @@
-// FILE: components/ui/Skeleton.jsx
-// Placeholder berkedip saat data sedang dimuat (loading state yang halus).
-
 import { cx } from '@/lib/utils';
 
 export default function Skeleton({ className }) {

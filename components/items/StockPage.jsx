@@ -1,9 +1,3 @@
-// FILE: components/items/StockPage.jsx
-// Halaman /stok — tiga tab:
-//   1) Input BKB  → ADMIN dan STAFF (Stock Keeper) bisa input
-//   2) Daftar BKB → semua role
-//   3) Master & Saldo → semua role (admin bisa ubah, staff hanya lihat)
-
 'use client';
 
 import { useState } from 'react';

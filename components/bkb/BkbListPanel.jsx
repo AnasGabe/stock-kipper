@@ -1,7 +1,3 @@
-// FILE: components/bkb/BkbListPanel.jsx
-// Daftar BKB (read-only). Dipakai Staff / Stock Keeper untuk menyiapkan barang,
-// dan Admin untuk memeriksa hasil input. Update otomatis lewat Realtime saat Admin menyimpan BKB.
-
 'use client';
 
 import { Fragment, useEffect, useMemo, useState } from 'react';

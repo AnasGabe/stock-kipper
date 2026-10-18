@@ -1,8 +1,3 @@
-// FILE: components/users/ResetPasswordModal.jsx
-// Modal reset password untuk user (khusus admin).
-// Saat password diganti, semua sesi lama user tersebut otomatis ditutup
-// (karena password_version di database bertambah).
-
 'use client';
 
 import { useEffect, useState } from 'react';

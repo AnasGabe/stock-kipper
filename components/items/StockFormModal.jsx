@@ -1,7 +1,3 @@
-// FILE: components/items/StockFormModal.jsx
-// Modal tambah/ubah MASTER barang (khusus Admin).
-// Lokasi tidak diinput: otomatis dari kategori (1 = Raw Material -> 100, 4 = Barang Olahan -> 800).
-
 'use client';
 
 import { useEffect, useState } from 'react';

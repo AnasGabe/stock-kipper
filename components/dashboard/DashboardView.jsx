@@ -1,7 +1,3 @@
-// FILE: components/dashboard/DashboardView.jsx
-// Isi halaman Dashboard (client side): kartu ringkasan + aktivitas terbaru.
-// Data otomatis segar karena memakai useRealtimeSWR (polling / Supabase Realtime).
-
 'use client';
 
 import { useRealtimeSWR } from '@/hooks/useRealtimeSWR';

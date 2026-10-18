@@ -1,6 +1,3 @@
-// FILE: components/ui/Spinner.jsx
-// Indikator loading (spinner) kecil yang dipakai di tombol & kartu.
-
 import { cx } from '@/lib/utils';
 
 export default function Spinner({ className }) {

@@ -1,8 +1,3 @@
-// FILE: components/ui/Toast.jsx
-// Notifikasi ringan (toast) untuk feedback sukses/gagal.
-// Pakai: const toast = useToast(); toast('Berhasil disimpan.');
-//        toast.error('Gagal menyimpan.');
-
 'use client';
 
 import { createContext, useCallback, useContext, useRef, useState } from 'react';

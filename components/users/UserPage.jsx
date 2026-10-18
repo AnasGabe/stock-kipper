@@ -1,7 +1,3 @@
-// FILE: components/users/UserPage.jsx
-// Halaman pengelolaan user (khusus admin): daftar, tambah, edit role/status,
-// reset password, nonaktifkan/aktifkan, dan hapus user.
-
 'use client';
 
 import { useState } from 'react';

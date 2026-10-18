@@ -1,7 +1,3 @@
-// FILE: components/ui/DarkModeToggle.jsx
-// Tombol mode gelap/terang. Saat login awal, tema dipakai dari localStorage
-// (lihat script di app/layout.js) lalu di-toggle lewat kelas "dark" di <html>.
-
 'use client';
 
 import { useEffect, useState } from 'react';

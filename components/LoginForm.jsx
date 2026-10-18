@@ -1,7 +1,3 @@
-// FILE: components/LoginForm.jsx
-// Form login (client side). Mengirim email+password ke /api/login.
-// Password ditampilkan dalam "show/hide" agar nyaman namun tetap tak terlihat pada umumnya.
-
 'use client';
 
 import { useState } from 'react';

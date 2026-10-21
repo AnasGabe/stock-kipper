@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/auth/jwt';
 
 // Path yang bisa diakses TANPA login
-const PUBLIC_PATHS = ['/login', '/api/login'];
+const PUBLIC_PATHS = ['/login', '/api/login', '/api/operator-login', '/api/operators'];
 
 function isPublicPath(pathname) {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
@@ -37,12 +37,31 @@ export default async function middleware(request) {
 
   // 3) Halaman/API khusus admin (cek role dari token; API juga dicek lagi di handler)
   const isUserPage = pathname.startsWith('/user');
-  const isUserApi = pathname.startsWith('/api/users');
-  if (payload && (isUserPage || isUserApi) && payload.role !== 'admin') {
+  const isUserApi  = pathname.startsWith('/api/users');
+  const isMesinPage = pathname.startsWith('/mesin');
+  const isMachineApi = pathname.startsWith('/api/machines') && (request.method === 'POST' || request.method === 'PUT' || request.method === 'DELETE');
+  if (payload && (isUserPage || isUserApi || isMesinPage || isMachineApi) && payload.role !== 'admin') {
     if (isApi) {
       return NextResponse.json({ ok: false, error: 'Anda tidak memiliki akses ke fitur ini.' }, { status: 403 });
     }
     return NextResponse.redirect(new URL('/', request.url));
+  }
+
+  // 4) Operator hanya bisa akses ruang-tunggu + request API
+  if (payload?.role === 'operator') {
+    const allowedForOperator = [
+      '/', '/ruang-tunggu',
+      '/api/requests', '/api/items/search', '/api/items/running-saldo',
+      '/api/bkb/next-doc', '/api/bkb/next-seq', '/api/machines',
+      '/api/me', '/api/logout',
+    ];
+    const allowed = allowedForOperator.some((p) => pathname === p || pathname.startsWith(p + '/') || pathname.startsWith(p + '?'));
+    if (!allowed && !isPublicPath(pathname)) {
+      if (isApi) {
+        return NextResponse.json({ ok: false, error: 'Operator hanya bisa mengakses form request.' }, { status: 403 });
+      }
+      return NextResponse.redirect(new URL('/ruang-tunggu', request.url));
+    }
   }
 
   return NextResponse.next();

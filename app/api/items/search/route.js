@@ -1,8 +1,3 @@
-// FILE: app/api/items/search/route.js
-// Backend untuk autocomplete & Barcode Scanner di form BKB.
-//   ?q=abc          -> daftar saran (kode/nama mengandung "abc")
-//   ?code=XYZ123    -> pencocokan PERSIS kode (hasil scan barcode)
-//   ?ids=1,2,3      -> saldo terbaru barang yang sudah dipilih di form
 
 import { getRepository } from '@/lib/db';
 import { searchSchema } from '@/lib/validations/items';
@@ -19,11 +14,22 @@ export async function GET(request) {
   if (!parsed.success) return jsonError(parsed.error.errors[0].message, 400);
   const { q, code, ids } = parsed.data;
 
+  const categoryCode = new URL(request.url).searchParams.get('categoryCode') || '';
+
   try {
     const repo = getRepository();
     if (ids) return jsonOk({ data: await repo.findItemsByIds(ids.split(',').map(Number)) });
-    if (code) return jsonOk({ data: await repo.findItemByCode(code) });
-    return jsonOk({ data: await repo.searchItems(q, 8) });
+    if (code) {
+      const item = await repo.findItemByCode(code);
+      // Filter kategori jika diminta
+      if (item && categoryCode && item.categoryCode !== categoryCode) {
+        return jsonOk({ data: null }); // tidak ditemukan untuk kategori ini
+      }
+      return jsonOk({ data: item });
+    }
+    const all = await repo.searchItems(q, categoryCode ? 20 : 8);
+    const filtered = categoryCode ? all.filter((it) => it.categoryCode === categoryCode) : all;
+    return jsonOk({ data: filtered.slice(0, 8) });
   } catch (err) {
     return handleApiError(err, 'Gagal mencari barang.');
   }

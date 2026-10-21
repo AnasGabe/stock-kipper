@@ -12,7 +12,7 @@ const TABS = [
   { id: 'master', label: 'Master & Saldo Stok' },
 ];
 
-export default function StockPage({ user }) {
+export default function StockPage({ user, deptProsesOptions }) {
   const isAdmin = user.role === 'admin';
   const [tab, setTab] = useState('input');
 
@@ -46,7 +46,7 @@ export default function StockPage({ user }) {
         ))}
       </div>
 
-      {tab === 'input'  && <BkbForm user={user} onSaved={() => {}} />}
+      {tab === 'input'  && <BkbForm user={user} onSaved={() => {}} deptProsesOptions={deptProsesOptions} />}
       {tab === 'daftar' && <BkbListPanel />}
       {tab === 'master' && <MasterPanel isAdmin={isAdmin} />}
     </div>

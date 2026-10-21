@@ -22,6 +22,9 @@ export default function UserPage({ currentUser }) {
   const [resettingUser, setResettingUser] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [setPinUser, setSetPinUser] = useState(null);
+  const [pinValue, setPinValue] = useState('');
+  const [pinBusy, setPinBusy] = useState(false);
 
   const { data, isLoading, error } = useRealtimeSWR('/api/users', swrFetcher, {
     subscribeTables: ['users'],
@@ -73,6 +76,23 @@ export default function UserPage({ currentUser }) {
       refresh();
     } catch (err) {
       toast.error(err.message || 'Gagal mengubah status.');
+    }
+  }
+
+  // ----- set PIN operator -----
+  async function handleSetPin() {
+    const pin = pinValue.replace(/\D/g, '');
+    if (pin.length !== 4) { toast.error('PIN harus tepat 4 digit.'); return; }
+    setPinBusy(true);
+    try {
+      await apiFetch(`/api/users/${setPinUser.id}/set-pin`, { body: { pin } });
+      toast(`PIN untuk ${setPinUser.name} berhasil diset.`);
+      setSetPinUser(null);
+      setPinValue('');
+    } catch (err) {
+      toast.error(err.message || 'Gagal set PIN.');
+    } finally {
+      setPinBusy(false);
     }
   }
 
@@ -192,6 +212,14 @@ export default function UserPage({ currentUser }) {
                             )
                           }
                         />
+                        {user.role === 'operator' && (
+                          <ActionButton
+                            title="Set PIN"
+                            onClick={() => { setSetPinUser(user); setPinValue(''); }}
+                            className="hover:bg-indigo-100 hover:text-indigo-600"
+                            icon={<path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />}
+                          />
+                        )}
                         <ActionButton
                           title="Hapus"
                           disabled={isSelf}
@@ -228,6 +256,36 @@ export default function UserPage({ currentUser }) {
         user={resettingUser}
         onSave={handleResetPassword}
       />
+
+      {/* modal set PIN operator */}
+      {setPinUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900">
+            <h2 className="mb-1 text-lg font-semibold text-slate-900 dark:text-white">Set PIN Operator</h2>
+            <p className="mb-4 text-sm text-slate-500">{setPinUser.name}</p>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">PIN Baru (4 digit)</label>
+            <input
+              type="tel" inputMode="numeric" pattern="[0-9]*" maxLength={4}
+              value={pinValue}
+              onChange={(e) => setPinValue(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              placeholder="0000"
+              className="mb-4 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-center text-2xl tracking-[0.5em] focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              autoFocus
+            />
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => { setSetPinUser(null); setPinValue(''); }}
+                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
+                Batal
+              </button>
+              <button type="button" onClick={handleSetPin} disabled={pinBusy || pinValue.length !== 4}
+                className="flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50">
+                {pinBusy && <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>}
+                Simpan PIN
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* dialog konfirmasi hapus */}
       <ConfirmDialog

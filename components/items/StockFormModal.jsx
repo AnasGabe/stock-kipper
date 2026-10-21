@@ -8,7 +8,7 @@ import { itemSchema } from '@/lib/validations/items';
 import { CATEGORIES, locationForCategory } from '@/lib/constants/bkb';
 
 const COMMON_UNITS = ['pcs', 'kg', 'gram', 'sak', 'karung', 'roll', 'meter', 'liter', 'box', 'pak'];
-const EMPTY_FORM = { categoryCode: '1', itemCode: '', barcode: '', name: '', unit: 'pcs', quantity: 0 };
+const EMPTY_FORM = { categoryCode: '1', itemCode: '', barcode: '', name: '', unit: 'pcs', quantity: 0, saldoProtect: 0 };
 
 export default function StockFormModal({ open, onClose, item, onSave }) {
   const [form, setForm] = useState(EMPTY_FORM);
@@ -18,7 +18,7 @@ export default function StockFormModal({ open, onClose, item, onSave }) {
   useEffect(() => {
     if (!open) return;
     setForm(item
-      ? { categoryCode: item.categoryCode, itemCode: item.itemCode, barcode: item.barcode || '', name: item.name, unit: item.unit, quantity: item.quantity }
+      ? { categoryCode: item.categoryCode, itemCode: item.itemCode, barcode: item.barcode || '', name: item.name, unit: item.unit, quantity: item.quantity, saldoProtect: item.saldoProtect ?? 0 }
       : { ...EMPTY_FORM });
     setErrors({});
   }, [open, item]);
@@ -80,6 +80,11 @@ export default function StockFormModal({ open, onClose, item, onSave }) {
             className="sm:col-span-2"
           >
             <input type="number" min="0" step="any" value={form.quantity} onChange={(e) => setField('quantity', e.target.value)} className={inputClass(errors.quantity)} />
+          </Field>
+          <Field label="Saldo Protect" hint="Minimum stok — sistem warning jika sisa di bawah nilai ini (0 = nonaktif)">
+            <input type="number" min="0" step="any" value={form.saldoProtect}
+              onChange={(e) => setField('saldoProtect', e.target.value)}
+              className={inputClass(false)} />
           </Field>
         </div>
 

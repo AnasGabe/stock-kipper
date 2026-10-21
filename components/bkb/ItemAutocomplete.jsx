@@ -7,12 +7,15 @@ import { formatNumber } from '@/lib/utils';
 import { inputClass } from '@/components/ui/Field';
 import CameraScanner from '@/components/ui/CameraScanner';
 
-export default function ItemAutocomplete({ rowKey, selected, onSelect, onClear, onPicked, hasError, autoFocus }) {
+// categoryCode: '1' atau '4' — untuk filter barang RM/BO
+export default function ItemAutocomplete({
+  rowKey, selected, onSelect, onClear, onPicked, hasError, autoFocus, categoryCode,
+}) {
   const [text,      setText]      = useState('');
   const [options,   setOptions]   = useState([]);
   const [open,      setOpen]      = useState(false);
   const [active,    setActive]    = useState(0);
-  const [busy,      setBusy]      = useState(false);
+  const [loading,   setLoading]   = useState(false);
   const [notice,    setNotice]    = useState('');
   const [camOpen,   setCamOpen]   = useState(false);
   const reqId    = useRef(0);
@@ -20,87 +23,111 @@ export default function ItemAutocomplete({ rowKey, selected, onSelect, onClear, 
   const navigated = useRef(false);
   const inputRef  = useRef(null);
 
-  // Autocomplete saat ketik (debounce 150ms)
+  // Autocomplete saat ketik (debounce 180ms)
   useEffect(() => {
     clearTimeout(timer.current);
     const q = text.trim();
-    if (selected || q.length < 1) { setOptions([]); return; }
+    if (selected || q.length < 1) { setOptions([]); setOpen(false); return; }
     timer.current = setTimeout(async () => {
       const id = ++reqId.current;
+      setLoading(true);
       try {
-        const res = await swrFetcher(`/api/items/search?q=${encodeURIComponent(q)}`);
+        const params = new URLSearchParams({ q });
+        if (categoryCode) params.set('categoryCode', categoryCode);
+        const res = await swrFetcher(`/api/items/search?${params}`);
         if (id !== reqId.current) return;
-        setOptions(res.data || []);
+        const found = res.data || [];
+        setOptions(found);
         setActive(0);
         navigated.current = false;
-        setOpen(true);
+        if (found.length > 0) setOpen(true);
+        else if (q.length >= 2) setNotice(`Tidak ada barang ${categoryCode === '1' ? 'RM' : categoryCode === '4' ? 'BO' : ''} yang cocok dengan "${q}".`);
       } catch { if (id === reqId.current) setOptions([]); }
-    }, 150);
+      finally { if (id === reqId.current) setLoading(false); }
+    }, 180);
     return () => clearTimeout(timer.current);
-  }, [text, selected]);
+  }, [text, selected, categoryCode]);
 
   function pick(item) {
+    // Validasi kategori
+    if (categoryCode && item.categoryCode !== categoryCode) {
+      const got  = CATEGORIES[item.categoryCode]?.label || item.categoryCode;
+      const want = CATEGORIES[categoryCode]?.label || categoryCode;
+      setNotice(`Barang ini adalah ${got}, tapi form ini untuk ${want}.`);
+      return;
+    }
     reqId.current += 1;
     clearTimeout(timer.current);
+    setLoading(false);
     setText(''); setOptions([]); setOpen(false); setNotice('');
     onSelect(item);
     onPicked?.(item);
   }
 
-  // Dipanggil saat Enter (keyboard scanner atau user tekan Enter)
   async function handleEnter() {
     const code = text.trim();
     if (!code) return;
     clearTimeout(timer.current);
 
-    // Sudah ada saran dipilih dengan panah
     if (open && options.length > 0 && navigated.current) {
       pick(options[active]); return;
     }
 
     const id = ++reqId.current;
-    setBusy(true); setNotice('');
+    setLoading(true); setNotice('');
     try {
-      // 1) Coba exact match barcode / item_code
-      const exact = await swrFetcher(`/api/items/search?code=${encodeURIComponent(code)}`);
+      const params = new URLSearchParams({ code });
+      if (categoryCode) params.set('categoryCode', categoryCode);
+      const exact = await swrFetcher(`/api/items/search?${params}`);
       if (id !== reqId.current) return;
-      if (exact.data) { pick(exact.data); return; }
-
-      // 2) Coba saran fuzzy
-      const list = await swrFetcher(`/api/items/search?q=${encodeURIComponent(code)}`);
+      if (exact.data) {
+        // Cek kategori
+        if (categoryCode && exact.data.categoryCode !== categoryCode) {
+          const got  = CATEGORIES[exact.data.categoryCode]?.label || exact.data.categoryCode;
+          const want = CATEGORIES[categoryCode]?.label || categoryCode;
+          setNotice(`Barang "${code}" adalah ${got}, tapi form ini hanya menerima ${want}.`);
+          return;
+        }
+        pick(exact.data); return;
+      }
+      const qParams = new URLSearchParams({ q: code });
+      if (categoryCode) qParams.set('categoryCode', categoryCode);
+      const list = await swrFetcher(`/api/items/search?${qParams}`);
       if (id !== reqId.current) return;
       const found = list.data || [];
       if (found.length === 1) { pick(found[0]); }
       else if (found.length > 1) { setOptions(found); setActive(0); setOpen(true); setNotice('Beberapa barang cocok — pilih salah satu.'); }
-      else { setNotice(`"${code}" tidak ada di master barang.`); }
+      else { setNotice(`"${code}" tidak ada di master barang${categoryCode ? ` untuk kategori ${CATEGORIES[categoryCode]?.label}` : ''}.`); }
     } catch (err) {
       if (id === reqId.current) setNotice(err.message || 'Gagal mencari barang.');
     } finally {
-      if (id === reqId.current) setBusy(false);
+      if (id === reqId.current) setLoading(false);
     }
   }
 
-  // Dipanggil saat kamera berhasil scan
   async function handleCamDetected(value) {
     setCamOpen(false);
     setText(value);
-    // Langsung cari seperti Enter
     const id = ++reqId.current;
-    setBusy(true); setNotice('');
+    setLoading(true); setNotice('');
     try {
-      const exact = await swrFetcher(`/api/items/search?code=${encodeURIComponent(value)}`);
+      const params = new URLSearchParams({ code: value });
+      if (categoryCode) params.set('categoryCode', categoryCode);
+      const exact = await swrFetcher(`/api/items/search?${params}`);
       if (id !== reqId.current) return;
       if (exact.data) { pick(exact.data); return; }
-      const list = await swrFetcher(`/api/items/search?q=${encodeURIComponent(value)}`);
+      const qParams = new URLSearchParams({ q: value });
+      if (categoryCode) qParams.set('categoryCode', categoryCode);
+      const list = await swrFetcher(`/api/items/search?${qParams}`);
       if (id !== reqId.current) return;
       const found = list.data || [];
       if (found.length === 1) { pick(found[0]); }
       else if (found.length > 1) { setOptions(found); setActive(0); setOpen(true); setNotice('Beberapa barang cocok — pilih salah satu.'); }
-      else { setNotice(`Barcode "${value}" tidak ditemukan di master. Tambahkan barcode di master barang.`); }
+      else { setNotice(`Barcode "${value}" tidak ditemukan.`); }
     } catch (err) {
       if (id === reqId.current) setNotice(err.message || 'Gagal mencari barang.');
     } finally {
-      if (id === reqId.current) setBusy(false);
+      if (id === reqId.current) setLoading(false);
     }
   }
 
@@ -109,22 +136,22 @@ export default function ItemAutocomplete({ rowKey, selected, onSelect, onClear, 
       e.preventDefault();
       if (selected) { onPicked?.(selected); return; }
       handleEnter();
-    } else if (e.key === 'ArrowDown' && options.length) {
+    } else if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+      if (!options.length) return;
       e.preventDefault(); navigated.current = true; setOpen(true);
-      setActive((i) => (i + 1) % options.length);
-    } else if (e.key === 'ArrowUp' && options.length) {
+      setActive((i) => Math.min(i + (e.key === 'PageDown' ? 3 : 1), options.length - 1));
+    } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+      if (!options.length) return;
       e.preventDefault(); navigated.current = true;
-      setActive((i) => (i - 1 + options.length) % options.length);
+      setActive((i) => Math.max(i - (e.key === 'PageUp' ? 3 : 1), 0));
     } else if (e.key === 'Escape') setOpen(false);
   }
 
   return (
     <>
-      {/* Modal kamera scan */}
       <CameraScanner open={camOpen} onDetected={handleCamDetected} onClose={() => setCamOpen(false)} />
 
       <div className="relative flex gap-1">
-        {/* Input utama */}
         <div className="relative flex-1">
           <input
             ref={inputRef}
@@ -146,17 +173,16 @@ export default function ItemAutocomplete({ rowKey, selected, onSelect, onClear, 
             placeholder="Ketik kode / nama, atau scan"
             role="combobox"
             aria-expanded={open}
-            aria-controls={`ac-${rowKey}`}
             aria-autocomplete="list"
             className={`${inputClass(hasError || Boolean(notice), true)} font-mono ${selected ? 'font-semibold pr-6' : ''} w-full`}
           />
-          {/* Spinner saat fetch */}
-          {busy && (
-            <span className="absolute right-2 top-2.5 h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-brand-500" />
+          {/* Spinner — tampil hanya saat loading, tidak looping */}
+          {loading && !selected && (
+            <span className="absolute right-2 top-2.5 h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-brand-500 pointer-events-none" />
           )}
-          {/* Tanda barang sudah dipilih */}
-          {selected && !busy && (
-            <button type="button" tabIndex={-1} onClick={() => { onClear(); setText(''); setTimeout(() => inputRef.current?.focus(), 30); }}
+          {selected && (
+            <button type="button" tabIndex={-1}
+              onClick={() => { onClear(); setText(''); setTimeout(() => inputRef.current?.focus(), 30); }}
               title="Hapus pilihan"
               className="absolute right-1.5 top-1.5 rounded p-0.5 text-slate-400 hover:text-rose-500">
               <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -166,7 +192,6 @@ export default function ItemAutocomplete({ rowKey, selected, onSelect, onClear, 
           )}
         </div>
 
-        {/* Tombol kamera scan */}
         <button
           type="button"
           onClick={() => setCamOpen(true)}
@@ -182,10 +207,12 @@ export default function ItemAutocomplete({ rowKey, selected, onSelect, onClear, 
 
       {notice && <p className="mt-1 text-xs text-rose-600">{notice}</p>}
 
-      {/* Dropdown saran */}
+      {/* Dropdown — max width mengikuti parent, tidak fullscreen */}
       {open && options.length > 0 && (
-        <ul id={`ac-${rowKey}`} role="listbox"
-          className="absolute left-0 right-0 z-40 mt-1 max-h-64 min-w-[320px] overflow-auto rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900">
+        <ul role="listbox"
+          className="absolute left-0 right-0 z-40 mt-1 max-h-56 overflow-auto rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900"
+          style={{ minWidth: 0 }}
+        >
           {options.map((item, index) => (
             <li key={item.id} role="option" aria-selected={index === active}
               onMouseDown={(e) => { e.preventDefault(); pick(item); }}
@@ -196,7 +223,7 @@ export default function ItemAutocomplete({ rowKey, selected, onSelect, onClear, 
                 <span className="shrink-0 text-xs text-slate-400">Saldo {formatNumber(item.quantity)} {item.unit}</span>
               </div>
               <p className="truncate text-xs text-slate-500">
-                {item.name} · {CATEGORIES[item.categoryCode]?.label} (Lok. {item.locationCode})
+                {item.name} · {CATEGORIES[item.categoryCode]?.label}
                 {item.barcode && <span className="ml-1 text-slate-400">· BC: {item.barcode}</span>}
               </p>
             </li>

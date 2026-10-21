@@ -90,27 +90,37 @@ export default function UserFormModal({ open, onClose, existing, currentUserId, 
         </Field>
 
         <Field label="Role" error={errors.role}>
-          <div className="grid grid-cols-2 gap-2">
-            {['staff', 'admin'].map((role) => (
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { value: 'staff', label: 'Stock Keeper' },
+              { value: 'admin', label: 'Data Entry (Admin)' },
+              { value: 'operator', label: 'Operator (PIN)' },
+            ].map(({ value, label }) => (
               <button
-                key={role}
+                key={value}
                 type="button"
                 disabled={isSelf}
-                onClick={() => setField('role', role)}
+                onClick={() => setField('role', value)}
                 className={
-                  form.role === role
-                    ? 'rounded-xl border-2 border-brand-600 bg-brand-50 px-3 py-2 text-sm font-semibold text-brand-700 dark:bg-brand-900/30'
-                    : 'rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300 dark:border-slate-700 dark:text-slate-300'
+                  form.role === value
+                    ? 'rounded-xl border-2 border-brand-600 bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-700 dark:bg-brand-900/30'
+                    : 'rounded-xl border-2 border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-slate-300 dark:border-slate-700 dark:text-slate-300'
                 }
               >
-                {role === 'admin' ? 'Admin' : 'Staff'}
+                {label}
               </button>
             ))}
           </div>
           {isSelf && <p className="mt-1 text-xs text-slate-400">Role akun sendiri tidak bisa diubah.</p>}
         </Field>
 
-        {!isEdit && (
+        {form.role === 'operator' && (
+          <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-800 dark:border-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+            Operator login menggunakan PIN 4 digit, bukan email+password. Setelah user dibuat, set PIN dari halaman daftar pengguna.
+          </div>
+        )}
+
+        {!isEdit && form.role !== 'operator' && (
           <>
             <Field label="Password Awal" error={errors.password} hint="Minimal 8 karakter">
               <input
@@ -129,6 +139,22 @@ export default function UserFormModal({ open, onClose, existing, currentUserId, 
                 placeholder="********"
                 className={inputClass(errors.confirmPassword)}
               />
+            </Field>
+          </>
+        )}
+        {!isEdit && form.role === 'operator' && (
+          <>
+            <Field label="Password Sementara" error={errors.password} hint="Diperlukan sistem, bisa diisi sembarang 8+ karakter">
+              <input type="password" value={form.password}
+                onChange={(e) => setField('password', e.target.value)}
+                placeholder="Minimal 8 karakter (sementara)"
+                className={inputClass(errors.password)} />
+            </Field>
+            <Field label="Ulangi Password" error={errors.confirmPassword}>
+              <input type="password" value={form.confirmPassword}
+                onChange={(e) => setField('confirmPassword', e.target.value)}
+                placeholder="Sama dengan di atas"
+                className={inputClass(errors.confirmPassword)} />
             </Field>
           </>
         )}

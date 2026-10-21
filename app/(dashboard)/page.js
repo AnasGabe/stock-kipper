@@ -10,6 +10,8 @@ export const metadata = { title: 'Dashboard' };
 export default async function DashboardPage() {
   const user = await getSessionUser();
   if (!user) redirect('/login');
+  // Operator langsung ke ruang tunggu
+  if (user.role === 'operator') redirect('/ruang-tunggu');
 
   return <DashboardView isAdmin={user.role === 'admin'} />;
 }

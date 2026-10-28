@@ -4,7 +4,8 @@
 // (requireAuth/requireRole) sebagai lapisan kedua yang paling penting.
 
 import { NextResponse } from 'next/server';
-import { verifySessionToken } from '@/lib/auth/jwt';
+import { renewSessionToken, sessionCookieOptions, verifySessionToken } from '@/lib/auth/jwt';
+import { getEnv } from '@/lib/env.js';
 
 // Path yang bisa diakses TANPA login
 const PUBLIC_PATHS = ['/login', '/api/login', '/api/operator-login', '/api/operators'];
@@ -17,8 +18,29 @@ export default async function middleware(request) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get('session')?.value;
   const payload = await verifySessionToken(token);
-
   const isApi = pathname.startsWith('/api');
+  const idleMs = (getEnv().sessionIdleMinutes || 45) * 60 * 1000;
+  const now = Date.now();
+  let response = null;
+
+  // Sesi menganggur terlalu lama -> paksa login ulang.
+  if (payload && !isPublicPath(pathname) && now - Number(payload.iat || 0) * 1000 > idleMs) {
+    const expired = isApi
+      ? NextResponse.json(
+          { ok: false, error: 'Sesi berakhir karena tidak ada aktivitas.' },
+          { status: 401 }
+        )
+      : NextResponse.redirect(new URL('/login', request.url));
+    expired.cookies.delete('session');
+    return expired;
+  }
+
+  // Perpanjang iat tiap 5 menit; exp absolut tetap dari AUTH_SESSION_HOURS.
+  if (payload && !isPublicPath(pathname) && now - Number(payload.iat || 0) * 1000 > 5 * 60 * 1000) {
+    const renewed = await renewSessionToken(payload, payload.exp);
+    response = NextResponse.next();
+    response.cookies.set('session', renewed, sessionCookieOptions());
+  }
 
   // 1) Wajib login: halaman & API selain yang publik
   if (!isPublicPath(pathname) && !payload) {
@@ -64,7 +86,7 @@ export default async function middleware(request) {
     }
   }
 
-  return NextResponse.next();
+  return response || NextResponse.next();
 }
 
 export const config = {

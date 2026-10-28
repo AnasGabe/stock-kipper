@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth/session';
 import { publicUser } from '@/lib/auth/guards';
 import AppShell from '@/components/AppShell';
+import { getEnv} from '@/lib/env'
 
 export default async function DashboardLayout({ children }) {
   // sesi dicek dua lapis: middleware (cepat) + di sini pakai data terbaru dari DB
@@ -14,5 +15,9 @@ export default async function DashboardLayout({ children }) {
     redirect('/login');
   }
 
-  return <AppShell user={publicUser(user)}>{children}</AppShell>;
+  const idleMinutes = getEnv().sessionIdleMinutes;
+
+  return <AppShell user={publicUser(user)} idleMinutes={idleMinutes}>
+    {children}
+  </AppShell>;
 }

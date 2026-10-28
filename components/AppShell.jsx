@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import DarkModeToggle from './ui/DarkModeToggle';
 import { cx } from '@/lib/utils';
 
@@ -90,10 +90,37 @@ function Brand() {
   );
 }
 
-export default function AppShell({ user, children }) {
+export default function AppShell({ user, idleMinutes = 45, children }) {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+
+  useEffect(() => {
+    const timeoutMs = Math.max(1, Number(idleMinutes) || 45) * 60 * 1000;
+    let timer;
+
+    const logout = () => {
+      fetch('/api/logout', { method: 'POST', keepalive: true })
+        .catch(() => {})
+        .finally(() => {
+          window.location.href = '/login';
+        });
+    };
+
+    const reset = () => {
+      clearTimeout(timer);
+      timer = setTimeout(logout, timeoutMs);
+    };
+
+    const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart'];
+    events.forEach((event) => window.addEventListener(event, reset, { passive: true }));
+    reset();
+
+    return () => {
+      clearTimeout(timer);
+      events.forEach((event) => window.removeEventListener(event, reset));
+    };
+  }, [idleMinutes]);
 
   async function handleLogout() {
     setLoggingOut(true);

@@ -159,7 +159,7 @@ export default function MesinPage() {
 
       {!isLoading && machines.length === 0 && (
         <div className="rounded-2xl border border-dashed border-slate-300 py-12 text-center text-slate-500 dark:border-slate-700">
-          <p className="text-sm">Belum ada mesin. Klik "+ Tambah Mesin" untuk menambahkan.</p>
+          <p className="text-sm">Belum ada mesin. Klik tombol Tambah Mesin untuk menambahkan.</p>
         </div>
       )}
 

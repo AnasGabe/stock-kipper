@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/Toast';
 import Spinner from '@/components/ui/Spinner';
 import { Field, inputClass } from '@/components/ui/Field';
 import ItemAutocomplete from './ItemAutocomplete';
+import MachineAutocomplete from './MachineAutocomplete';
 import { bkbSchema } from '@/lib/validations/bkb';
 import {
   JENIS_TRANSAKSI, BKB_KATEGORI_OPTIONS, SIFT_OPTIONS, TUJUAN_OPTIONS,
@@ -256,8 +257,10 @@ export default function BkbForm({ user, onSaved, deptProsesOptions }) {
   const freshById = useMemo(
     () => new Map((fresh?.data || []).map((it) => [it.id, it])), [fresh],
   );
-  const saldoOf = (line) =>
-    line.item ? (freshById.get(line.item.id)?.quantity ?? line.item.quantity) : null;
+  const saldoOf = useCallback(
+    (line) => (line.item ? (freshById.get(line.item.id)?.quantity ?? line.item.quantity) : null),
+    [freshById],
+  );
 
   // Cek saldo protect per baris
   const protectWarnings = useMemo(() => {
@@ -272,7 +275,7 @@ export default function BkbForm({ user, onSaved, deptProsesOptions }) {
       }
     });
     return warnings;
-  }, [lines, freshById, outbound]);
+  }, [lines, freshById, outbound, saldoOf]);
 
   const overRows = lines.filter((l) => outbound && l.item && Number(l.qty) > saldoOf(l));
 

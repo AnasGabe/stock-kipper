@@ -1,7 +1,7 @@
 // FILE: components/ui/CameraScanner.jsx
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export default function CameraScanner({ open, onDetected, onClose }) {
   const videoRef  = useRef(null);
@@ -14,6 +14,20 @@ export default function CameraScanner({ open, onDetected, onClose }) {
   const [mode,    setMode]    = useState('loading'); // loading | live | denied | error | processing
   const [torchOn, setTorchOn] = useState(false);
   const [msg,     setMsg]     = useState('');
+
+  const stop = useCallback(() => {
+    cancelAnimationFrame(rafRef.current);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+  }, []);
+
+  const handleResult = useCallback((value) => {
+    if (!value) return;
+    stop();
+    onDetected(value.trim());
+  }, [onDetected, stop]);
 
   useEffect(() => {
     if (!open) return;
@@ -96,21 +110,7 @@ export default function CameraScanner({ open, onDetected, onClose }) {
 
     start();
     return () => { cancelled = true; stop(); };
-  }, [open]);
-
-  function stop() {
-    cancelAnimationFrame(rafRef.current);
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    }
-  }
-
-  function handleResult(value) {
-    if (!value) return;
-    stop();
-    onDetected(value.trim());
-  }
+  }, [open, handleResult, stop]);
 
   function handleClose() { stop(); onClose(); }
 

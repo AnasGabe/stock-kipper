@@ -22,6 +22,7 @@ export default function ItemAutocomplete({
   const timer    = useRef(null);
   const navigated = useRef(false);
   const inputRef  = useRef(null);
+  const comboboxId = `item-autocomplete-${rowKey ?? 'new'}`;
 
   // Autocomplete saat ketik (debounce 180ms)
   useEffect(() => {
@@ -172,6 +173,7 @@ export default function ItemAutocomplete({
             onBlur={() => setTimeout(() => setOpen(false), 130)}
             placeholder="Ketik kode / nama, atau scan"
             role="combobox"
+            aria-controls={open ? `${comboboxId}-list` : undefined}
             aria-expanded={open}
             aria-autocomplete="list"
             className={`${inputClass(hasError || Boolean(notice), true)} font-mono ${selected ? 'font-semibold pr-6' : ''} w-full`}
@@ -209,7 +211,7 @@ export default function ItemAutocomplete({
 
       {/* Dropdown — max width mengikuti parent, tidak fullscreen */}
       {open && options.length > 0 && (
-        <ul role="listbox"
+        <ul id={`${comboboxId}-list`} role="listbox"
           className="absolute left-0 right-0 z-40 mt-1 max-h-56 overflow-auto rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900"
           style={{ minWidth: 0 }}
         >
